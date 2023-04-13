@@ -1,0 +1,673 @@
+{
+	"info": {
+		"_postman_id": "6e9a8e3b-dd8e-4303-ac4b-3b663ec89d69",
+		"name": "CosmosIntegratedCacheTest",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "QueryCacheRequests",
+			"item": [
+				{
+					"name": "List Test Items by RefIds when they don't exist in database.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"var uuid = require('uuid');",
+									"",
+									"var refIds = [];",
+									"",
+									"while (refIds.length < pm.collectionVariables.get(\"refIdsCount\"))",
+									"{",
+									"    refIds.push(uuid.v4());",
+									"}",
+									"",
+									"pm.collectionVariables.set(\"refIds\", JSON.stringify(refIds));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status Code is 404.\", function(){",
+									"    pm.response.to.have.status(404);",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{refIds}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}{{dedicatedGateway}}",
+							"host": [
+								"{{baseUrl}}{{dedicatedGateway}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create TestItem documents with RefIds.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"Status Code is 201.\", function(){",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Created expected number of TestItem objects.\", function() {",
+									"    pm.expect(jsonData).to.have.lengthOf(pm.collectionVariables.get(\"refIdsCount\"));",
+									"});",
+									"",
+									"pm.test(\"Created TestItem objects have correct RefId values.\", function(){",
+									"    var refIds = JSON.parse(pm.collectionVariables.get(\"refIds\"));",
+									"",
+									"    for (var i = 0; i < jsonData.length; i++) {",
+									"        var refId = jsonData[i].refId;",
+									"",
+									"        var index = refIds.indexOf(refId);",
+									"",
+									"        pm.expect(index).to.be.greaterThan(-1);",
+									"",
+									"        // remove this refId from list",
+									"        var index = refIds.indexOf(refId);",
+									"        if (index > -1) {",
+									"            refIds.splice(index, 1);",
+									"        }",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{refIds}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}{{directConnectionCreate}}",
+							"host": [
+								"{{baseUrl}}{{directConnectionCreate}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Test Items by RefIds using direct connection returns items.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"Status Code is 200.\", function(){",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"pm.test(\"Request unit charge is greater than 0.\", function() {",
+									"    pm.expect(jsonData.requestUnits).to.be.greaterThan(0);",
+									"});",
+									"",
+									"pm.test(\"Response returned expected number of items.\", function() {",
+									"    pm.expect(jsonData.testItems.length).to.eq(",
+									"        parseInt(pm.collectionVariables.get(\"refIdsCount\")));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{refIds}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}{{directConnection}}",
+							"host": [
+								"{{baseUrl}}{{directConnection}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Test Items by RefIds when empty reponse is cached.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"Status Code is 404.\", function(){",
+									"    pm.response.to.have.status(404);",
+									"})",
+									"",
+									"pm.test(\"Request unit charge is 0.\", function() {",
+									"    pm.expect(jsonData.requestUnits).to.eq(0);",
+									"});",
+									"",
+									"pm.test(\"Response returned no items.\", function() {",
+									"    pm.expect(jsonData.testItems.length).to.eq(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{refIds}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}{{dedicatedGateway}}",
+							"host": [
+								"{{baseUrl}}{{dedicatedGateway}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Test Items by RefIds with retry.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"Status Code is 200.\", function(){",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"pm.test(\"Two TestItemQueryResult objects in response.\", function() {",
+									"    pm.expect(jsonData.length).to.eq(2);",
+									"});",
+									"",
+									"var emptyResult = jsonData.find(x => x.testItems.length == 0);",
+									"var nonEmptyResult = jsonData.find(x => x.testItems.length > 0);",
+									"",
+									"pm.test(\"TestItemQueryResult from cached query returned no items.\", function() {",
+									"    pm.expect(emptyResult.testItems.length).to.eq(0);",
+									"});",
+									"",
+									"pm.test(\"TestItemQueryResult from cached query incurred no RUs.\", function() {",
+									"    pm.expect(emptyResult.requestUnits).to.eq(0);",
+									"});",
+									"",
+									"pm.test(\"TestItemQueryResult from non-cached query returned expected number of items.\", function() {",
+									"    ",
+									"    pm.expect(nonEmptyResult.testItems.length).to.eq(",
+									"        parseInt(pm.collectionVariables.get(\"refIdsCount\")));",
+									"});",
+									"",
+									"pm.test(\"TestItemQueryResult from non-cached query incurred RUs.\", function() {",
+									"    pm.expect(nonEmptyResult.requestUnits).to.be.greaterThan(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{refIds}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}{{dedicatedGatewayWithRetry}}",
+							"host": [
+								"{{baseUrl}}{{dedicatedGatewayWithRetry}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Test Items by RefIds after empty response is \"cleared\" from cache.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"Status Code is 200.\", function(){",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"pm.test(\"TestItemQueryResult incurred no RUs.\", function() {",
+									"    pm.expect(jsonData.requestUnits).to.eq(0);",
+									"});",
+									"",
+									"pm.test(\"Response returned expected number of items.\", function() {",
+									"    pm.expect(jsonData.testItems.length).to.eq(",
+									"        parseInt(pm.collectionVariables.get(\"refIdsCount\")));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{refIds}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}{{dedicatedGateway}}",
+							"host": [
+								"{{baseUrl}}{{dedicatedGateway}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "ItemCacheRequests",
+			"item": [
+				{
+					"name": "Create TestItem document via direct connection and save id, partitionKey.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"var uuid = require('uuid');",
+									"",
+									"var refIds = [];",
+									"",
+									"while (refIds.length < 1)",
+									"{",
+									"    refIds.push(uuid.v4());",
+									"}",
+									"",
+									"pm.collectionVariables.set(\"refIdsForItemQueries\", JSON.stringify(refIds));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"Status Code is 201.\", function(){",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Created TestItem objects have correct values.\", function(){",
+									"    var refIds = JSON.parse(pm.collectionVariables.get(\"refIdsForItemQueries\"));",
+									"",
+									"    var listOfIdsWithPartitionKeys = [];",
+									"",
+									"    for (var i = 0; i < jsonData.length; i++) {",
+									"        var refId = jsonData[i].refId;",
+									"        var id = jsonData[i].id;",
+									"        var partitionKey = jsonData[i].customKey;",
+									"",
+									"        var idWithPartitionKey = {\"id\": id, \"partitionKey\": partitionKey};",
+									"        listOfIdsWithPartitionKeys.push(idWithPartitionKey);",
+									"",
+									"        var index = refIds.indexOf(refId);",
+									"",
+									"        pm.expect(index).to.be.greaterThan(-1);",
+									"",
+									"        // remove this refId from list",
+									"        var index = refIds.indexOf(refId);",
+									"        if (index > -1) {",
+									"            refIds.splice(index, 1);",
+									"        }",
+									"    }",
+									"",
+									"    pm.collectionVariables.set(\"idsWithPartitionKeys\", JSON.stringify(listOfIdsWithPartitionKeys));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{{refIdsForItemQueries}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}{{directConnectionCreate}}",
+							"host": [
+								"{{baseUrl}}{{directConnectionCreate}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get item from database using id and partition key.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"var idsWithPartitionKeys = JSON.parse(pm.collectionVariables.get(\"idsWithPartitionKeys\"));",
+									"",
+									"var id = idsWithPartitionKeys[0].id;",
+									"var partitionKey = idsWithPartitionKeys[0].partitionKey;",
+									"",
+									"pm.collectionVariables.set(\"id\", id);",
+									"pm.collectionVariables.set(\"partitionKey\", partitionKey);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"Status Code is 200.\", function(){",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"pm.test(\"Request unit charge is greater than 0.\", function() {",
+									"    pm.expect(jsonData.requestUnits).to.be.greaterThan(0);",
+									"});",
+									"",
+									"pm.test(\"Response returned expected number of items.\", function() {",
+									"    pm.expect(jsonData.testItems.length).to.eq(1);",
+									"});",
+									"",
+									"pm.test(\"Response item has expected values.\", function () {",
+									"    var id = pm.collectionVariables.get(\"id\");",
+									"    var partitionKey = pm.collectionVariables.get(\"partitionKey\");",
+									"",
+									"    pm.expect(jsonData.testItems[0].id).to.eq(id);",
+									"    pm.expect(jsonData.testItems[0].customKey).to.eq(partitionKey);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/gateway/test-item/{{id}}/{{partitionKey}}",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"gateway",
+								"test-item",
+								"{{id}}",
+								"{{partitionKey}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get item from cache using id and partition key.",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"var idsWithPartitionKeys = JSON.parse(pm.collectionVariables.get(\"idsWithPartitionKeys\"));",
+									"",
+									"var id = idsWithPartitionKeys[0].id;",
+									"var partitionKey = idsWithPartitionKeys[0].partitionKey;",
+									"",
+									"pm.collectionVariables.set(\"id\", id);",
+									"pm.collectionVariables.set(\"partitionKey\", partitionKey);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);",
+									"",
+									"pm.test(\"Status Code is 200.\", function(){",
+									"    pm.response.to.have.status(200);",
+									"})",
+									"",
+									"pm.test(\"Request unit charge is 0.\", function() {",
+									"    pm.expect(jsonData.requestUnits).to.eq(0);",
+									"});",
+									"",
+									"pm.test(\"Response returned expected number of items.\", function() {",
+									"    pm.expect(jsonData.testItems.length).to.eq(1);",
+									"});",
+									"",
+									"pm.test(\"Response item has expected values.\", function () {",
+									"    var id = pm.collectionVariables.get(\"id\");",
+									"    var partitionKey = pm.collectionVariables.get(\"partitionKey\");",
+									"",
+									"    pm.expect(jsonData.testItems[0].id).to.eq(id);",
+									"    pm.expect(jsonData.testItems[0].customKey).to.eq(partitionKey);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}api/gateway/test-item/{{id}}/{{partitionKey}}",
+							"host": [
+								"{{baseUrl}}api"
+							],
+							"path": [
+								"gateway",
+								"test-item",
+								"{{id}}",
+								"{{partitionKey}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:7071/",
+			"type": "default"
+		},
+		{
+			"key": "dedicatedGateway",
+			"value": "api/gateway/test-items",
+			"type": "default"
+		},
+		{
+			"key": "dedicatedGatewayWithRetry",
+			"value": "api/gateway/test-items-retry",
+			"type": "default"
+		},
+		{
+			"key": "directConnection",
+			"value": "api/direct/test-items",
+			"type": "default"
+		},
+		{
+			"key": "directConnectionCreate",
+			"value": "api/direct/test-items/new",
+			"type": "default"
+		},
+		{
+			"key": "refIdsCount",
+			"value": "5",
+			"type": "default"
+		},
+		{
+			"key": "refIds",
+			"value": ""
+		},
+		{
+			"key": "id",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "refIdsForItemQueries",
+			"value": ""
+		},
+		{
+			"key": "idsWithPartitionKeys",
+			"value": ""
+		},
+		{
+			"key": "partitionKey, partitionKey",
+			"value": ""
+		},
+		{
+			"key": "partitionKey",
+			"value": ""
+		}
+	]
+}
