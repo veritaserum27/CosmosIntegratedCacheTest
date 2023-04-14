@@ -1,0 +1,18 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        "AzureWebJobsDashboard": "UseDevelopmentStorage=true",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+        "COSMOS_DBNAME": "<YOUR COSMOS DB NAME>",
+        "COSMOS_CONTAINER_NAME": "<YOUR COSMOS CONTAINER NAME>",
+        "QUERY_CACHE_DURATION_HOURS": 1
+    },
+    "ConnectionStrings": {
+        "COSMOS_GATEWAY_CONNECTION_STRING": "AccountEndpoint=https://<your-cosmos-db-account>.sqlx.cosmos.azure.com/;AccountKey=<your-cosmos-db-key>;",
+        "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://<your-cosmos-db-account>.documents.azure.com:443/;AccountKey=<your-cosmos-db-key>;"
+    },
+    "Host": {
+        "CORS": "*"
+    }
+}
