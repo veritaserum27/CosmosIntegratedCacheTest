@@ -1,4 +1,4 @@
-# Exploring Cosmos with Integrated Cache
+# Exploring Azure Cosmos with Integrated Cache
 
 **Author:** Laura Lund
 
@@ -6,15 +6,15 @@
 
 Have you ever had a use case in which an application receives a high volume of repeated requests against a rarely-changing data set? Caching is the obvious choice to prevent your database from being slammed by too many requests at once, but adding an external cache such as [Azure Redis](https://azure.microsoft.com/en-us/products/cache/) means creating and maintaining an additional dependency. What if you could benefit from caching without having to directly manage your cache?
 
-I recently had the opportunity to build a project using Cosmos DB with integrated cache. My team worked on a customer engagement for a use case that involved heavy reads, low writes, and repeated queries. We used Cosmos DB as our backing datastore, so we decided to try out this new integrated cache feature.
+I recently had the opportunity to build a project using Azure Cosmos DB with integrated cache. My team worked on a customer engagement for a use case that involved heavy reads, low writes, and repeated queries. We used Azure Cosmos DB as our backing datastore, so we decided to try out this new integrated cache feature.
 
-## What is Cosmos with integrated cache?
+## What is Azure Cosmos DB with integrated cache?
 
 The [Azure Cosmos DB integrated cache](https://learn.microsoft.com/en-us/azure/cosmos-db/integrated-cache) is essentially a turn-key cache that is managed for you. Currently it is only available for the NoSQL API. With the integrated cache you don’t need to set up any additional caching resources or dependencies and your code can simply interact with Cosmos DB without having to explicitly manage the cache.
 
-When you create your [serverless Cosmos DB account](https://learn.microsoft.com/en-us/azure/cosmos-db/serverless) and enable the [dedicated gateway](https://learn.microsoft.com/en-us/azure/cosmos-db/dedicated-gateway), the integrated cache is configured automatically. As part of the process to [provision the dedicated gateway](https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-configure-integrated-cache?tabs=dotnet), you select the number of gateway nodes you’d like to create. One node is sufficient for development purposes, but for use in production it is recommended to have a minimum of three. The [cost for the dedicated gateway](https://azure.microsoft.com/en-in/pricing/details/cosmos-db/autoscale-provisioned/) is calculated hourly and is determined by the number of nodes and the region selected. Since queries that hit the integrated cache incur no request unit (RU) charges, the overall cost of the database usage will be primarily driven by this hourly charge.
+When you create your Azure Cosmos DB account and enable the [dedicated gateway](https://learn.microsoft.com/en-us/azure/cosmos-db/dedicated-gateway), the integrated cache is configured automatically. As part of the process to [provision the dedicated gateway](https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-configure-integrated-cache?tabs=dotnet), you select the number of gateway nodes you’d like to create. One node is sufficient for development purposes, but for use in production it is recommended to have a minimum of three. The [cost for the dedicated gateway](https://azure.microsoft.com/en-in/pricing/details/cosmos-db/autoscale-provisioned/) is calculated hourly and is determined by the number of nodes and the region selected. Since queries that hit the integrated cache incur no request unit (RU) charges, the overall cost of the database usage will be primarily driven by this hourly charge.
 
-## When is Cosmos with Integrated Cache a good fit?
+## When is Azure Cosmos DB with Integrated Cache a good fit?
 
 Because the integrated cache is managed for you, it does not give you explicit controls over its operations the way a stand-alone cache would. Therefore it is best suited for applications that:
 
@@ -25,22 +25,22 @@ Because the integrated cache is managed for you, it does not give you explicit c
 * Tolerate eventual or [session consistency](https://learn.microsoft.com/en-us/azure/cosmos-db/integrated-cache#session-consistency)
 * Can operate without the need for an explicit cache refresh
 
-## Architecture of Cosmos DB with Integrated Cache
+## Architecture of Azure Cosmos DB with Integrated Cache
 
 When a request is sent to Cosmos Db via the dedicated gateway in dedicated gateway mode, the request hits a dedicated gateway node. It is then directed by that node to a backend node to retrieve data. If the cache on the dedicated gateway node does not have the requested data, the data is retrieved from the database (backend node) and the data is cached on the dedicated gateway node before it is returned to the caller. Request unit charges are incurred each time there is a cache miss.
 
-Each dedicated gateway node [maintains its own cache](https://learn.microsoft.com/en-us/azure/cosmos-db/dedicated-gateway). This means that if a request is cached on one dedicated gateway node and the same request is sent again, the data will be retrieved from the database if the request is serviced by a different dedicated gateway node than it was the first time. This second retrieval of data will also be cached again on the second dedicated gateway node. The backing data in the database is replicated as usual across all the backend nodes, but caches are not replicated across dedicated gateway nodes. Calls are routed to dedicated gateway nodes randomly, so it is possible to have a cache miss even if the data is cached on another dedicated gateway node.
+Each dedicated gateway node [maintains its own cache](https://learn.microsoft.com/en-us/azure/cosmos-db/dedicated-gateway). This means you can potentially get back different data depending on which node the request is routed through (see the [docs](https://learn.microsoft.com/en-us/azure/cosmos-db/integrated-cache) and the animation below). The backing data in the database is replicated as usual across all the backend nodes, but caches are not replicated across dedicated gateway nodes. Calls are routed to dedicated gateway nodes randomly, so it is possible to have a cache miss even if the data is cached on another dedicated gateway node.
 
 Cosmos DB integrated cache has an item cache and a query cache:
 
-* The [item cache](https://learn.microsoft.com/en-us/azure/cosmos-db/integrated-cache#item-cache) services point reads where the `key` is a composite of the item Id and partition key and the `value` is the data in the associated document. Changes to the backing data do trigger a refresh in the item cache on the dedicated gateway node that serviced the request.
-* The [query cache](https://learn.microsoft.com/en-us/azure/cosmos-db/integrated-cache#query-cache) services bulk requests or queries. For example, a query with a `WHERE clause` will be cached in the query cache even if it returns a single value. The `key` for an item in the query cache is based on the query text and the `value` is the result of that query. Even if a particular document has been cached previously as part of the result for another query, it will be cached again if a given query varies from the previous one. For example a request that returns documents [1..40] will be cached as one query result and a request that returns documents [2..41] will be cached as a distinct query result. Changes to the backing data do not affect cached values in the query cache.
+* The [item cache](https://learn.microsoft.com/en-us/azure/cosmos-db/integrated-cache#item-cache) services point reads where the key is a composite of the item id and partition key and the value is the data in the associated document. The item cache works like write-through cache, which means that the data in the cache is updated at the time it is written.
+* The [query cache](https://learn.microsoft.com/en-us/azure/cosmos-db/integrated-cache#query-cache) services queries. For example, a query with a WHERE clause will be cached in the query cache even if it returns a single value. The key for an item in the query cache is based on the query text and the value is the result of that query. Even if a particular document has been cached previously as part of the result for another query, it will be cached again if a given query varies from the previous one. For example, a request that returns documents [1..40] will be cached as one query result and a request that returns documents [2..41] will be cached as a distinct query result. Changes to the backing data do not affect cached values in the query cache.
 
 ## Cache Refresh
 
 Cosmos DB with integrated cache handles cache refresh differently from other caching technologies. At this time there is no explicit cache invalidation, but that may be included in a future release. A workaround for if you need to invalidate all cached data on all dedicated gateway nodes is to deprovision and reprovision the dedicated gateway.
 
-As a cache on a given dedicated gateway node fills up with data, it evicts the least-recently accessed values. The item cache is automatically refreshed when an item is newly created, updated, or deleted. That is not true for values in the query cache.
+As a cache on a given dedicated gateway node fills up with data, it evicts the least-recently accessed values. The item cache is automatically "refreshed" when an item is newly created, updated, or deleted. That is not true for values in the query cache.
 
 The primary mechanism to trigger a query cache refresh is via the `MaxIntegratedCacheStaleness` value that is passed in when an application requests data from Cosmos DB. The calling application essentially tells the dedicated gateway what its tolerance is for stale data. That tolerance may be mere minutes to several days depending on the application’s use cases for the data. When the `MaxIntegratedCacheStaleness` value exceeds the amount of time that has passed since a query result was cached, the query is run against the database again and the updated result is stored in the cache on that dedicated gateway node. If an application queries Cosmos with a `MaxIntegratedCacheStaleness` of 0, it will always get back data from the database and the cache on that dedicated gateway node will be refreshed to store the new query results. The caches on any other dedicated gateway nodes will not be refreshed until a request that “expires” the cached values is routed to that node or it is evicted according to the Least Recently Used (LRU) eviction policy.
 
@@ -58,7 +58,7 @@ Below is an animation of what happens when a request is sent to the dedicated ga
 
 ## Code Examples
 
-You can download and walk through the code for my [working sandbox project](../src/) that uses Cosmos with integrated cache. Start with the [README](../README.md) to understand how to set up for local development.
+You can download and walk through the code for my [working sandbox project](../src/) that uses Azure Cosmos DB with integrated cache. Start with the [README](../README.md) to understand how to set up for local development.
 
 ### Configure CosmosClient to Use Dedicated Gateway
 
@@ -137,4 +137,4 @@ The document will be returned in the `Resource` property on the `ItemResponse` o
 
 ## Conclusion
 
-The simplification of application architecture is what I like the most about Cosmos DB with integrated cache. It's convenient to be able to simply write Cosmos queries and know that cache hits and misses are handled automatically. For usage patterns involving a high volume of *repeated* requests, serverless Cosmos DB with integrated cache can serve thousands of requests per second without a corresponding high Request Unit charge. The dedicated gateway costs can be predicted in advance, which can result in overall lower Cosmos DB charges as compared to a serverless Cosmos DB *without* an integrated cache. I look forward to additional features the Cosmos DB product team may develop to make this an even more robust product.
+The simplification of application architecture is what I like the most about Azure Cosmos DB with integrated cache. It's convenient to be able to simply write Cosmos queries and know that cache hits and misses are handled automatically. For usage patterns involving a high volume of *repeated* requests, Azure Cosmos DB with integrated cache can serve thousands of requests per second without a corresponding high Request Unit charge. The dedicated gateway costs can be predicted in advance, which can result in overall lower Cosmos DB charges as compared to a Azure Cosmos DB *without* an integrated cache. I look forward to additional features the Azure Cosmos DB product team may develop to make this an even more robust product.
