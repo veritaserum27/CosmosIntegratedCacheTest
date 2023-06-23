@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "6e9a8e3b-dd8e-4303-ac4b-3b663ec89d69",
-		"name": "CosmosIntegratedCacheTest",
+		"_postman_id": "3c5ee60c-38a8-458e-85a2-399d23ca8bed",
+		"name": "AzureCosmosDBIntegratedCacheDemo",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -9,7 +9,7 @@
 			"name": "QueryCacheRequests",
 			"item": [
 				{
-					"name": "List Test Items by RefIds when they don't exist in database.",
+					"name": "Create TestItem documents with RefIds.",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -25,51 +25,6 @@
 									"}",
 									"",
 									"pm.collectionVariables.set(\"refIds\", JSON.stringify(refIds));"
-								],
-								"type": "text/javascript"
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status Code is 404.\", function(){",
-									"    pm.response.to.have.status(404);",
-									"})"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{{refIds}}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}{{dedicatedGateway}}",
-							"host": [
-								"{{baseUrl}}{{dedicatedGateway}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Create TestItem documents with RefIds.",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									""
 								],
 								"type": "text/javascript"
 							}
@@ -188,7 +143,7 @@
 					"response": []
 				},
 				{
-					"name": "List Test Items by RefIds when empty reponse is cached.",
+					"name": "List Test Items by RefIds using dedicated gateway.",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -205,16 +160,17 @@
 								"exec": [
 									"let jsonData = JSON.parse(responseBody);",
 									"",
-									"pm.test(\"Status Code is 404.\", function(){",
-									"    pm.response.to.have.status(404);",
+									"pm.test(\"Status Code is 200.\", function(){",
+									"    pm.response.to.have.status(200);",
 									"})",
 									"",
-									"pm.test(\"Request unit charge is 0.\", function() {",
-									"    pm.expect(jsonData.requestUnits).to.eq(0);",
+									"pm.test(\"Request Unit charge is greater than 0.\", function() {",
+									"    pm.expect(jsonData.requestUnits).to.be.greaterThan(0);",
 									"});",
 									"",
-									"pm.test(\"Response returned no items.\", function() {",
-									"    pm.expect(jsonData.testItems.length).to.eq(0);",
+									"pm.test(\"Response returned expected number of items.\", function() {",
+									"    pm.expect(jsonData.testItems.length).to.eq(",
+									"        parseInt(pm.collectionVariables.get(\"refIdsCount\")));",
 									"});"
 								],
 								"type": "text/javascript"
@@ -243,7 +199,7 @@
 					"response": []
 				},
 				{
-					"name": "List Test Items by RefIds with retry.",
+					"name": "List Test Items by RefIds using dedicated gateway after items are cached.",
 					"event": [
 						{
 							"listen": "prerequest",
@@ -264,79 +220,7 @@
 									"    pm.response.to.have.status(200);",
 									"})",
 									"",
-									"pm.test(\"Two TestItemQueryResult objects in response.\", function() {",
-									"    pm.expect(jsonData.length).to.eq(2);",
-									"});",
-									"",
-									"var emptyResult = jsonData.find(x => x.testItems.length == 0);",
-									"var nonEmptyResult = jsonData.find(x => x.testItems.length > 0);",
-									"",
-									"pm.test(\"TestItemQueryResult from cached query returned no items.\", function() {",
-									"    pm.expect(emptyResult.testItems.length).to.eq(0);",
-									"});",
-									"",
-									"pm.test(\"TestItemQueryResult from cached query incurred no RUs.\", function() {",
-									"    pm.expect(emptyResult.requestUnits).to.eq(0);",
-									"});",
-									"",
-									"pm.test(\"TestItemQueryResult from non-cached query returned expected number of items.\", function() {",
-									"    ",
-									"    pm.expect(nonEmptyResult.testItems.length).to.eq(",
-									"        parseInt(pm.collectionVariables.get(\"refIdsCount\")));",
-									"});",
-									"",
-									"pm.test(\"TestItemQueryResult from non-cached query incurred RUs.\", function() {",
-									"    pm.expect(nonEmptyResult.requestUnits).to.be.greaterThan(0);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{{refIds}}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{baseUrl}}{{dedicatedGatewayWithRetry}}",
-							"host": [
-								"{{baseUrl}}{{dedicatedGatewayWithRetry}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List Test Items by RefIds after empty response is \"cleared\" from cache.",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									""
-								],
-								"type": "text/javascript"
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"let jsonData = JSON.parse(responseBody);",
-									"",
-									"pm.test(\"Status Code is 200.\", function(){",
-									"    pm.response.to.have.status(200);",
-									"})",
-									"",
-									"pm.test(\"TestItemQueryResult incurred no RUs.\", function() {",
+									"pm.test(\"Request Unit charge is 0.\", function() {",
 									"    pm.expect(jsonData.requestUnits).to.eq(0);",
 									"});",
 									"",
@@ -510,11 +394,12 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}api/gateway/test-item/{{id}}/{{partitionKey}}",
+							"raw": "{{baseUrl}}/api/gateway/test-item/{{id}}/{{partitionKey}}",
 							"host": [
-								"{{baseUrl}}api"
+								"{{baseUrl}}"
 							],
 							"path": [
+								"api",
 								"gateway",
 								"test-item",
 								"{{id}}",
@@ -576,11 +461,12 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}api/gateway/test-item/{{id}}/{{partitionKey}}",
+							"raw": "{{baseUrl}}/api/gateway/test-item/{{id}}/{{partitionKey}}",
 							"host": [
-								"{{baseUrl}}api"
+								"{{baseUrl}}"
 							],
 							"path": [
+								"api",
 								"gateway",
 								"test-item",
 								"{{id}}",
@@ -616,27 +502,22 @@
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "http://localhost:7071/",
+			"value": "http://localhost:7071",
 			"type": "default"
 		},
 		{
 			"key": "dedicatedGateway",
-			"value": "api/gateway/test-items",
-			"type": "default"
-		},
-		{
-			"key": "dedicatedGatewayWithRetry",
-			"value": "api/gateway/test-items-retry",
+			"value": "/api/gateway/test-items",
 			"type": "default"
 		},
 		{
 			"key": "directConnection",
-			"value": "api/direct/test-items",
+			"value": "/api/direct/test-items",
 			"type": "default"
 		},
 		{
 			"key": "directConnectionCreate",
-			"value": "api/direct/test-items/new",
+			"value": "/api/direct/test-items/new",
 			"type": "default"
 		},
 		{
@@ -649,11 +530,6 @@
 			"value": ""
 		},
 		{
-			"key": "id",
-			"value": "",
-			"type": "default"
-		},
-		{
 			"key": "refIdsForItemQueries",
 			"value": ""
 		},
@@ -662,7 +538,7 @@
 			"value": ""
 		},
 		{
-			"key": "partitionKey, partitionKey",
+			"key": "id",
 			"value": ""
 		},
 		{

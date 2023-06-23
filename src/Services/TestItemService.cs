@@ -53,26 +53,6 @@ namespace CosmosIntegratedCacheTest.Services
             return await _cosmosDbRepository.GetTestItemsByRefIdsDedicatedGateway(refIds, cacheDuration);
         }
 
-        public async Task<List<TestItemQueryResult>> GetTestItemsByRefIdsDedicatedGatewayWithRetry(IEnumerable<string> refIds)
-        {
-            if (refIds == null) throw new ArgumentNullException(nameof(refIds));
-            if (!refIds.Any()) throw new ArgumentException(nameof(refIds));
-            
-            var result = new List<TestItemQueryResult>();
-
-            var firstCall = await _cosmosDbRepository.GetTestItemsByRefIdsDedicatedGateway(refIds, cacheDuration);
-
-            result.Add(firstCall);
-
-            if (!firstCall.TestItems.Any())
-            {
-                var secondCall = await _cosmosDbRepository.GetTestItemsByRefIdsDedicatedGateway(refIds, 0);
-                result.Add(secondCall);
-            }
-
-            return result;
-        }
-
         public async Task<TestItemQueryResult> GetTestItemsByRefIdsDirectConnection(IEnumerable<string> refIds)
         {
             if (refIds == null) throw new ArgumentNullException(nameof(refIds));

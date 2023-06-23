@@ -1,34 +1,34 @@
 # Cosmos Integrated Cache Test
 
-**Author:** Laura Lund
+A simple C# demo application that uses the Azure Cosmos DB with integrated cache feature.
 
-## Project Overview
+## Features
 
-To read a broader overview of my learnings around Cosmos with Integrated Cache, please [click here](./docs/ExploringCosmosWithIntegratedCache.md).
+* End-to-end demo application showing how to use `direct` and `gateway` modes when connecting to Azure Cosmos DB
+* Working sample code for using the dedicated gateway and `MaxIntegratedCacheStaleness` mechanism
+* Comparison of Request Unit charges when querying using a `direct` vs. `gateway` connection
+* Demonstration of cache behavior when using the included Postman collection
 
-I initially built this as a test project to [investigate cache behavior](/docs/CacheBehaviorInvestigation.md) when a list of items is queried before one or more of those items exists in the Cosmos Db instance. When queries are made using a Dedicated Gateway Connection String, the result of that query is cached with a `MaxIntegratedCacheStaleness` of some time value. In this test project I use hours. After the set amount of time, the cached value is evicted from the cache.
+## Getting Started
 
-When queries are made using a direct connection, those results are not cached.
+### Prerequisites
 
-## Running Locally
-
-### Dependencies
-
-* [.Net 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
 * [A Cosmos DB account with a dedicated gateway](https://learn.microsoft.com/en-us/azure/cosmos-db/dedicated-gateway)
 
   * Create a database
-  * Create a container with the partition key set to "/customKey".
+  * Create a container with the partition key set to `/customKey`.
 
+### Installation
+
+* [.Net 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
 * [Visual Studio Code](https://code.visualstudio.com/Download)
-
-  * Recommended VS Code Extensions
-
 * [Postman](https://www.postman.com/downloads/)
 
-### Local Settings
+### Quickstart
 
-You will need a file called `local.settings.json` in the same folder as the `Startup.cs` file. Your `local.settings.json` file should look like the example below. I have also included an [`example.settings.json` file](./src/example.settings.json) that you can copy, rename, and replace with your values.
+1. Clone this repository
+2. Open the root folder in VS Code
+3. Copy `example.settings.json` and populate it with values from the Cosmos DB Account you created in [Prerequisites](#prerequisites). Save it as `local.settings.json`. The application settings are explaned below.
 
 ```jsonc
 {
@@ -57,15 +57,18 @@ In order to seed data via the `CreateTestItemsByRefids` function, you will need 
 
 Values for `COSMOS_EFLS_DBNAME` and `COSMOS_EFLS_CONTAINER_NAME` can be located on your Cosmos DB account under `Data Explorer`.
 
-### How to Run
+## Demo
 
-Once your save your `local.settings.json` file with the necessary values, you can run the project from the command line with:
+To run the demo, follow these steps:
+
+(Add steps to start up the demo)
+
+1. Create and save local settings as [described above](#quickstart)
+2. On the command line navigate to the directory containing AzureCosmosDbWithIntegratedCacheSample.csproj and enter this command:
 
 > func start
 
-**Note:** This command only works if your terminal is in the directory that holds the `csproj` file.
-
-You can also run using the VS Code debugger.
+Alternatively, you can run using the VS Code debugger.
 
 **Note:** If you get the error `Failed to verify "AzureWebJobsStorage" connection specified in "local.settings.json". Is the local emulator installed and running?`, use the Command Palette (`View > Command Palette`) and select `Azurite: Start`.
 
@@ -77,4 +80,8 @@ The Swagger annotations for each function explain a function's purpose as well a
 
 ## Postman Collection
 
-Open Postman and import the Postman collection from this project. This collection contains requests that walk through the investigations for the purpose of this project. See the [PostmanCollectionOverview](./docs/PosmanCollectionOverview.md) document for general exploration of Cosmos with Integrated cache and [CacheBehaviorInvestigation](./docs/CacheBehaviorInvestigation.md) for understanding what happens if a query is sent via the dedicated gateway before the items exist in the database.
+See the [PostmanCollectionOverview](./docs/PosmanCollectionOverview.md) document to understand how the included Postman collection walks through a general exploration of Cosmos DB with Integrated cache.
+
+## Resources
+
+* [Azure Cosmos DB with Integrated Cache](https://learn.microsoft.com/en-us/azure/cosmos-db/integrated-cache)
