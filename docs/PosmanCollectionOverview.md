@@ -4,7 +4,7 @@ This document describes how to use Postman to with the Azure Cosmos DB with Inte
 
 ## Initial Project Setup
 
-Please complete the ["Getting Started"](../../README.md#getting-started) tasks before proceeding.
+Please complete the ["Getting Started"](../README.md#getting-started) tasks before proceeding.
 
 ## Postman Setup
 
